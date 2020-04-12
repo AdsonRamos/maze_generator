@@ -1,0 +1,185 @@
+<canvas id="canvas"></canvas>
+
+<script>
+
+    const m = 30 // number of rows
+    const n = 30 // number of collumns
+    gridSize = 20
+    wallVertical = [[]]
+    wallHorizontal = [[]]
+
+    window.onload = function () {
+        canvas = document.getElementById("canvas")
+        canvas.setAttribute("width", n * gridSize)
+        canvas.setAttribute("height", m * gridSize)
+        ctx = canvas.getContext("2d")
+
+        startWalls()
+
+        const g = new GrafoDFS(m * n)
+
+        matrixNodes = [[]]
+        for (let i = 0; i < m; i++) {
+            matrixNodes[i] = []
+            for (let j = 0; j < n; j++) {
+                matrixNodes[i].push(i * n + j)
+                if (i != m - 1) {
+                    g.addAresta((i * n + j), ((i + 1) * n + j))
+                    g.addAresta(((i + 1) * n + j), (i * n + j))
+                }
+
+                if (j != n - 1) {
+                    g.addAresta((i * n + j), (i * n + j + 1))
+                    g.addAresta((i * n + j + 1), (i * n + j))
+                }
+            }
+        }
+
+        stack = []
+
+        const startNode = 0
+
+        g.nodes[startNode].visited = true
+        stack.push(g.nodes[startNode])
+
+        mazeIt(stack, g, g.nodes, g.nodes[startNode])
+
+        drawBoard()
+
+    }
+
+    // retorna um nó aleatório que ainda não foi visitado
+    // retorna falso caso não haja nós adjacentes não-visitados
+    function getUnvisitedNode(grafo, node) {
+
+        let nonVisited = grafo.listaAdjacencia[node.label].filter((item) => {
+            return !item.visited
+        })
+
+        if (nonVisited.length == 0) {
+            return false
+        } else {
+            return nonVisited[Math.floor(Math.random() * nonVisited.length)]
+        }
+
+    }
+
+    function mazeIt(stack, grafo, nodes, current) {
+        while (stack.length > 0) {
+            if (unvisitedNode = getUnvisitedNode(grafo, current)) {
+                //console.log("Removido o caminho entre o nó " + current.label + " e o nó " + unvisitedNode.label)
+                removeWall(current.label, unvisitedNode.label)
+                if (!current.visited) {
+                    current.visited = true
+                }
+                unvisitedNode.visited = true
+                stack.push(unvisitedNode)
+                mazeIt(stack, grafo, nodes, unvisitedNode)
+            }
+            current = stack.pop()
+        }
+    }
+
+    function startWalls() {
+        // inicia paredes verticais
+        for (let i = 0; i < m; i++) {
+            wallVertical[i] = []
+            for (let j = 0; j < n - 1; j++) {
+                wallVertical[i].push(1)
+            }
+        }
+
+        //inicia paredes horizontais
+        for (let i = 0; i < m - 1; i++) {
+            wallHorizontal[i] = []
+            for (let j = 0; j < n; j++) {
+                wallHorizontal[i].push(1)
+            }
+        }
+
+    }
+
+    // dados dois nós adjacentes, remove a parede entre eles
+    function removeWall(u, v) {
+        const x0 = u % n
+        const y0 = Math.floor(u / n)
+
+        const x1 = v % n
+        const y1 = Math.floor(v / n)
+
+        if (x0 == x1) {
+            if (y1 > y0) {
+                wallHorizontal[y0][x0] = 0
+            } else {
+                wallHorizontal[y1][x0] = 0
+            }
+        } else if (y0 == y1) {
+            if (x1 > x0) {
+                wallVertical[y0][x0] = 0
+            } else {
+                wallVertical[y0][x1] = 0
+            }
+        }
+
+    }
+
+    function drawBoard() {
+        ctx.fillStyle = "#94FF94"
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = "black"
+
+        // desenha as paredes que sobraram depois da execução do algoritmo
+        // desenha as paredes verticais
+        for (let i = 0; i < wallVertical.length; i++) {
+            for (let j = 0; j < wallVertical[i].length; j++) {
+                if (wallVertical[i][j] == 1) {
+                    ctx.moveTo((j + 1) * gridSize, i * gridSize)
+                    ctx.lineTo((j + 1) * gridSize, (i + 1) * gridSize)
+                    ctx.stroke()
+                }
+            }
+        }
+
+        // desenha as paredes horizontais
+        for (let i = 0; i < wallHorizontal.length; i++) {
+            for (let j = 0; j < wallHorizontal[i].length; j++) {
+                if (wallHorizontal[i][j] == 1) {
+                    ctx.moveTo((j) * gridSize, (i + 1) * gridSize)
+                    ctx.lineTo((j + 1) * gridSize, (i + 1) * gridSize)
+                    ctx.stroke()
+                }
+            }
+        }
+
+        ctx.moveTo(0, 0)
+        ctx.lineTo(0, canvas.height)
+        ctx.stroke()
+
+        ctx.lineTo(canvas.width, canvas.height)
+        ctx.stroke()
+
+        ctx.lineTo(canvas.width, 0)
+        ctx.stroke()
+
+        ctx.lineTo(0, 0)
+        ctx.stroke()
+    }
+
+    class GrafoDFS {
+        vertices
+        listaAdjacencia = [[]]
+        nodes = []
+
+        constructor(vertices) {
+            this.vertices = vertices
+            for (let i = 0; i < vertices; i++) {
+                this.listaAdjacencia[i] = []
+                this.nodes.push({ label: i, visited: false });
+            }
+        }
+
+        addAresta(u, v) {
+            this.listaAdjacencia[u].push(this.nodes[v])
+        }
+    }
+</script>
